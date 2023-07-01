@@ -1,0 +1,464 @@
+---
+title: "Assignment 3"
+output: html_notebook
+---
+
+## Task 1
+### Action 1
+Load the dataset into R and check the structure and summary of the data:
+
+```{r}
+
+# Read the 'river_2023.csv' file into the 'river_data' dataframe
+river_data <- read.csv("river_2023.csv")
+
+# Display the structure of the 'river_data' dataframe
+str(river_data)
+
+# Provide summary statistics for the variables in the 'river_data' dataframe
+summary(river_data)
+
+```
+
+Identify missing values and replace them with appropriate measures: 
+
+a. Identify missing values: 
+
+b. Replace missing values with appropriate measures: For continuous variables (chemical concentrations)
+
+A common approach is to replace missing values with the mean or median of the non-missing values for that variable. I use mean in this scenario For categorical variables (season, river size, fluid velocity), a common approach is to replace missing values with the mode (most frequent value) of the non-missing values for that variable. I use mod in this scenario
+
+```{r}
+
+# Calculate the number of missing values before cleaning
+missing_before <- sum(river_data == "XXXXXXX", na.rm = TRUE)
+
+missing_values <- river_data == "XXXXXXX"
+
+# Replace missing values with the mean (for numeric columns)
+river_data[missing_values] <- NA
+river_data[, 4:9] <- lapply(river_data[, 4:9], function(x) {
+  x <- as.numeric(as.character(x))  # Convert to numeric
+  replace(x, is.na(x), mean(x, na.rm = TRUE))
+})
+
+library(modeest)
+
+# Function to calculate the mode
+get_mode <- function(x) {
+  uniq <- unique(x)
+  uniq[which.max(tabulate(match(x, uniq)))]
+}
+
+# Replace missing values with the mode
+for (col in c("Season", "River_Size", "Fluid_vel")) {
+  river_data[river_data[, col] == "XXXXXXX", col] <- get_mode(river_data[, col])
+}
+
+# Calculate the number of missing values after cleaning
+missing_after <- sum(is.na(river_data))
+
+# Print the number of missing values before and after cleaning
+cat("Number of missing values before cleaning:", missing_before, "\n")
+cat("Number of missing values after cleaning:", missing_after, "\n")
+
+```
+
+Missing values in numeric columns (variables: nitrogen, nitrates, nitrites, ammonia, phosphate, oxygen, A1, A2, A3, A4, A5) were replaced with the mean value of the non-missing values for each respective variable. Missing values in categorical columns (variables: Season, River\_Size, Fluid\_vel) were replaced with the mode (most frequent value) of the non-missing values for each respective variable. By employing these cleaning techniques, we successfully eliminated all missing values from the dataset. Prior to cleaning, there were 21 missing values in the river\_data, but after cleaning, the dataset is now free of missing values.
+
+
+Check the updated structure and summary of the data to confirm that missing values have been addressed
+
+```{r}
+str(river_data)
+summary(river_data)
+```
+### Action 2
+
+Frequency tables are commonly used in statistical analysis to summarize categorical data. They provide a concise and organized way to present the counts or frequencies of different categories within a dataset. Frequency tables allow us to understand the distribution and proportion of observations in each category, providing insights into the patterns and relationships within the data.
+
+```{r}
+# Frequency table for Season
+season_freq <- table(river_data$Season)
+season_freq
+
+# Frequency table for River_Size
+river_size_freq <- table(river_data$River_Size)
+river_size_freq
+
+# Frequency table for Fluid_vel
+fluid_vel_freq <- table(river_data$Fluid_vel)
+fluid_vel_freq
+```
+
+Summary statistics are commonly performed on numeric variables because they provide meaningful measures of central tendency, variability, and distribution.
+
+```{r}
+# Compute summary statistics for numeric variables
+numeric_summary <- summary(river_data[, 4:14])
+
+# Print the summary statistics
+print(numeric_summary)
+```
+
+Boxplots are commonly used to visualize and summarize the distribution and variability of multiple variables simultaneously.
+
+```{r}
+
+library(plotly)
+
+# Select the numeric variables for boxplots
+numeric_variables <- river_data[, 4:14]
+
+# Create boxplots for numeric variables
+boxplot(numeric_variables, main = "Boxplot of Numeric Variables",
+        xlab = "Variables", ylab = "Values")
+
+# Create separate boxplots for each numeric variable
+library(plotly)
+
+# Generate box plots using plotly
+# Generate box plots using plotly
+for (col in 1:ncol(numeric_variables)) {
+  p <- plot_ly(data = numeric_variables, y = ~numeric_variables[, col], type = "box")
+  temp_yaxis <- names(numeric_variables)[col]
+  
+  # Customize the layout
+  layout <- list(
+    title = paste("Boxplot of", temp_yaxis),
+    xaxis = list(title = "Variable"),
+    yaxis = list(title = temp_yaxis),
+    autosize = FALSE,
+    width = 800,
+    height = 600,
+    hovermode = "closest",
+    boxmode = "group"
+  )
+  
+  # Add the layout to the plot
+  p <- p %>% layout(layout)
+  
+  # Display the plot
+  print(p)
+}
+
+```
+Summary Tables:
+
+The summary tables provide an overview of the data distribution across different categories. For example, the number of observations recorded in each season is as follows: autumn (40), spring (53), summer (45), and winter (62). Similarly, the river size is categorized as large (45), medium (84), and small (71), and the fluid velocity is categorized as high (84), low (33), and medium (83). 
+
+Summary Statistics:
+
+The summary statistics offer a glimpse into the distribution of each numerical variable. For instance, the nitrogen levels range from a minimum of 1.5 to a maximum of 13.4, with a median of 9.8. The nitrates range from 0.222 to 391.5, with a median of 35.999. Similar statistics are provided for nitrites, ammonia, phosphate, oxygen, and the pollutants A1, A2, A3, A4, and A5. These statistics help understand the central tendency and spread of the data. 
+
+Hypothesis and Explanations:
+
+1. Relationship Between River Size and Nitrate Concentration: The summary tables indicate that the medium-sized rivers have the highest number of observations. By examining the box plots, we can analyze the nitrate concentration in different river sizes. It appears that larger rivers tend to have higher nitrate concentrations, which may be attributed to pollution sources or nutrient runoff.
+
+2. Relationship Between Fluid Velocity and Ammonia Levels: The summary tables reveal that medium fluid velocity observations dominate the dataset. By referring to the box plots, we can observe the relationship between fluid velocity and ammonia levels. It seems that medium fluid velocity corresponds to higher ammonia concentrations. This could be due to various factors such as industrial discharges or natural decomposition processes.
+
+3. Influence of Phosphate on Oxygen Levels: The box plot for phosphate shows a wide distribution, indicating variations in phosphate levels. High phosphate concentrations can lead to increased algal growth, resulting in oxygen depletion in the water. By examining the box plot for oxygen, we can observe if there is a corresponding pattern of lower oxygen levels in instances where phosphate concentrations are high. This would suggest a potential relationship between phosphate and oxygen levels, highlighting the impact of eutrophication on water quality.
+
+4. Impact of Pollutants (A1, A2, A3, A4, A5) on River Health: The box plots for pollutants A1, A2, A3, A4, and A5 provide insights into their respective distributions. By comparing these plots, we can identify pollutants that consistently show higher concentrations or a larger number of outliers. This analysis can help prioritize monitoring and mitigation efforts for specific pollutants that may pose a greater risk to river health. Additionally, further investigations can be conducted to determine the sources and potential impacts of these pollutants on aquatic ecosystems.
+
+
+
+## Task 2
+### Action 1
+
+```{r}
+# Create the new variable 'river_size_vel'
+river_data$river_size_vel <- paste(river_data$River_Size, river_data$Fluid_vel, sep = "_")
+head(river_data)
+```
+
+
+
+```{r}
+# Create frequency table
+frequency_table <- table(river_data$river_size_vel)
+
+# Print the frequency table
+print(frequency_table)
+```
+
+The frequency table provides insights into the distribution of the combined categories of 'River\_Size' and 'River\_Vel'. Let's analyze the data and propose a hypothesis: \
+
+Hypothesis: The combination of river size and velocity has an impact on the water quality and ecological characteristics of the river. The variable 'river\_size\_vel' combines the categories of 'River\_Size' and 'River\_Vel', creating unique combinations that can potentially influence the characteristics of the river. By examining the frequency table, we can make several observations:
+
+Higher Frequencies:
+
+  1.'medium\_high' and 'medium\_medium' combinations have relatively higher frequencies compared to other categories. This suggests that rivers with a medium size and velocity may be more                 common or representative of the studied area.
+        
+  2. 'large\_medium' and 'small\_high' combinations also have relatively higher frequencies, indicating the presence of rivers with varying sizes and velocities.
+        
+Lower Frequencies:
+
+  1. 'small\_low' combination has the lowest frequency, indicating that rivers with small size and low velocity are less common or may not be prevalent in the studied area.
+
+Hypothesis: Rivers with medium size and velocity are more prevalent and may exhibit a balanced ecological condition compared to rivers with extreme combinations of size and velocity. \
+
+  1. Rivers with a medium size and velocity (such as 'medium\_high' and 'medium\_medium') are more frequently observed, suggesting that they may represent a typical or common condition in the studied area. These rivers may have characteristics that contribute to a balanced ecological condition, such as moderate flow rates and suitable habitats for aquatic organisms.
+  
+  2.  On the other hand, rivers with extreme combinations of size and velocity (such as 'large\_high', 'large\_low', 'small\_high', and 'small\_low') have lower frequencies, indicating that they may be less prevalent or have unique characteristics that limit their occurrence.
+    
+### Action 2
+
+In order to explore the multivariate relationships among the categories of the new 'river\_size\_vel' variable, we will use hierarchical clustering with the Gower distance and complete linkage method. The Gower distance is a suitable choice for our analysis because it can handle mixed data types, including both numerical and categorical variables. This is advantageous because the 'river\_size\_vel' variable is a combination of categorical variables (River\_Size and Fluid\_vel). The Gower distance takes into account the different data types and calculates the dissimilarity between observations based on their attribute values. By using the Gower distance, we can capture the dissimilarity between the categories of 'river\_size\_vel' accurately. \
+
+We have chosen hierarchical clustering as our clustering method because it allows us to visualize the relationships between the different categories in a dendrogram. Hierarchical clustering starts with each observation as an individual cluster and progressively merges similar clusters until all observations are grouped into a single cluster. This method provides a comprehensive view of the hierarchy and relationships between the categories. \
+
+Within hierarchical clustering, we specifically used the complete linkage method. The complete linkage method calculates the dissimilarity between two clusters as the maximum dissimilarity between any two points in the two clusters. This method tends to produce compact and well-separated clusters, which can be useful for identifying distinct groups within the 'river\_size\_vel' categories. By using the Gower distance and complete linkage method, we aim to capture the overall dissimilarity between the 'river\_size\_vel' categories and identify the most distinct and similar groups. The Gower distance takes into account the differences in attribute values, allowing us to account for the categorical and numerical variables present in the 'river\_size\_vel' variable. The complete linkage method, on the other hand, emphasizes the maximum dissimilarity between clusters, providing a clear separation between groups.
+```{r}
+library(cluster)
+numeric_cols <- sapply(river_data, is.numeric)
+rivermeans <- aggregate(river_data[, numeric_cols], 
+                       by = list(river_data$river_size_vel), FUN = mean, na.rm = TRUE)
+diss_matrix <- daisy(rivermeans[, -1], metric = "gower")
+hc <- hclust(diss_matrix, method = "complete")
+
+# Assign the labels from the "Group.1" column
+labels <- rivermeans$Group.1
+
+plot(hc, main = "Dendrogram of river_size_vel Categories",
+     xlab = "River Categories", ylab = "Distance", labels = labels)
+```
+The dendrogram represents the multivariate relationships among the categories of the variable 'river\_size\_vel'. Let's analyze the dendrogram and propose a hypothesis based on the relationships observed: \
+
+Hypothesis: The multivariate relationships among the categories of 'river\_size\_vel' indicate distinct ecological patterns and functional groupings within the river ecosystem. \
+
+Explanation: The dendrogram provides insights into the similarities and dissimilarities among the different categories of 'river\_size\_vel'. By examining the axes and the distances between the groups, we can make several observations:
+Vertical Axis:
+
+  1. On the left side of the vertical axis, we have 'medium\_low' and 'medium\_medium' grouped closely together with a distance of 0.1. This suggests that rivers with these combinations            of size and velocity share similar characteristics and may exhibit comparable ecological patterns.
+        
+  2. Similarly, 'large\_low' and 'small\_medium' are grouped together with a distance of 0.3, indicating a higher level of similarity between these categories.
+  
+  3. On the right side of the vertical axis, 'large\_high' and 'small\_high' are grouped closely together with a distance of 0.2, suggesting similarities in ecological patterns between             rivers with these combinations.
+        
+  4. Likewise, 'large\_medium' and 'medium\_high' are also grouped together with a distance of 0.2, indicating similar characteristics between these categories. All of the right side                 groups are attached to 'small\_low', which serves as a connecting point or a common reference for the other categories.
+        
+
+High-Level Hypothesis: Rivers with similar combinations of size and velocity ('river\_size\_vel') exhibit distinct ecological patterns and functional groupings within the river ecosystem. The dendrogram reveals that certain categories of 'river\_size\_vel' are more closely related to each other, indicating similarities in ecological patterns and potential functional groupings.
+
+  1. Group 1: 'medium\_low' and 'medium\_medium'
+           Rivers with these combinations may share common ecological characteristics, such as moderate size and velocity, leading to comparable ecological patterns. This shows rivers with 'medium\_low' and 'medium\_medium' combinations may exhibit similar species assemblages and functional traits, indicating a shared ecological niche.
+           
+  2. Group 2: 'large\_low' and 'small\_medium'
+           Rivers with these combinations may have distinct ecological features due to differences in size and velocity. This shows rivers with 'large\_low' and 'small\_medium' combinations may exhibit variations in habitat complexity, nutrient dynamics, or species compositions, leading to functional differentiation.
+           
+  3. Group 3: 'large\_high' and 'small\_high'
+          Rivers with these combinations may share common ecological conditions despite differences in size and velocity. This shows rivers  'large\_high' and 'small\_high' combinations may experience similar hydrological and ecological processes, such as high flow dynamics or exposure to similar external factors.
+    
+  4. Group 4: 'large\_medium' and 'medium\_high'
+          Rivers with these combinations may exhibit intermediate characteristics between the other groups. This shows rivers with 'large\_medium' and 'medium\_high' combinations may demonstrate a transitional ecological state or exhibit a combination of ecological features observed in the adjacent groups.
+
+### Action 3
+
+I used Classical Multidimensional Scaling (MDS), also known as Principal Coordinates Analysis (PCoA). Classical MDS is a technique used to visualize the dissimilarity or similarity structure of a dataset in a lower-dimensional space. The choice of Classical MDS was made based on the nature of the data and the objective of the analysis. Classical MDS is appropriate when we have a dissimilarity or distance matrix as input, which is the case in this scenario. The dissimilarity matrix was calculated using the Gower distance metric, which takes into account both numerical and categorical variables. \
+
+Classical MDS transforms the dissimilarity matrix into a set of coordinates that represent each data point in a lower-dimensional space (in this case, 2-dimensional space). The transformation aims to preserve the pairwise distances or dissimilarities as much as possible. By doing so, it allows us to visualize the relationships and patterns among the river categories based on their dissimilarity.
+
+```{r}
+numeric_cols <- sapply(river_data, is.numeric)
+mds_data <- river_data[, numeric_cols]
+
+# Calculate dissimilarity matrix
+diss_matrix <- daisy(mds_data, metric = "gower")
+
+# Perform MDS analysis
+mds_result <- cmdscale(diss_matrix, k = 2)
+mds_coords <- mds_result[, 1:2]
+
+# Create the plot
+mds_plot_data <- data.frame(x = mds_coords[, 1], y = mds_coords[, 2], Group = river_data$river_size_vel)
+
+# Define a vector of shapes for each group
+shape_vector <- c(16, 17, 15, 3, 8, 6, 2, 4, 13)
+
+ggplot(mds_plot_data, aes(x = x, y = y, color = Group, shape = Group)) +
+  geom_point(size = 3) +
+  labs(title = "MDS Plot of river_size_vel Categories",
+       x = "MDS Dimension 1", y = "MDS Dimension 2") +
+  scale_shape_manual(values = shape_vector) +
+  theme_minimal()
+
+```
+
+The MDS (Multidimensional Scaling) plot visually represents the relationships among the categories of the new 'river\_size\_vel' variable, providing insights into the multivariate patterns of river size and velocity. This MDS aims to explore the potential connections and clusters within the dataset. The plot reveals interesting findings and raises hypotheses regarding the relationships between different groups and their respective positions in the plot.
+
+  1. Small-High Points Concentrated in a Specific Range: The majority of the points labeled as "small\_high" are clustered within a narrow range on the MDS plot, specifically between 0.0 and 0.1 on both dimensions. This suggests a strong association between small river size and high velocity. One possible hypothesis is that smaller rivers tend to have higher water flow rates due to their narrower channels, resulting in increased velocity.
+  
+    2. Scattered Distribution of Small-Medium and Small-High Points: Unlike the concentrated grouping of "small\_high" points, the points labeled as "small\_medium" and "small\_high" appear to be scattered throughout the plot. This indicates that there is no consistent relationship between river size and velocity within the "small" category. It suggests that other factors, such as topography or surrounding environmental conditions, might influence the velocity patterns in small rivers.
+    
+    3. Large-High Points Clustered with Small-High: There is a noticeable clustering of "large\_high" points with the "small\_high" group on the MDS plot. This suggests a potential relationship between large river size and high velocity, similar to the pattern observed within the "small\_high" group. It is possible that larger rivers, with their greater water volume and wider channels, also exhibit higher water flow rates and, consequently, higher velocity.
+    
+The MDS plot provides valuable insights into the multivariate relationships among the categories of the 'river\_size\_vel' variable. The observations and hypotheses derived from the plot shed light on the potential connections between river size and velocity. The concentration of "small\_high" points in a specific range indicates a strong association between smaller river size and higher velocity. The scattered distribution of "small\_medium" and "small\_high" points suggests that additional factors may influence velocity within the "small" category. The clustering of "large\_high" points with the "small\_high" group points to a possible relationship between larger river size and high velocity. 
+
+
+
+### Action 4
+
+When analyzing multivariate data, it is crucial to employ appropriate techniques that can effectively capture and visualize the relationships between variables. Dendrograms and MDS  plots are two widely used methods that rely on the distance matrix to uncover patterns in the data. In this report, we will delve into the reasons why both a dendrogram and an MDS plot have been provided in the analysis of river data. We will explore how these methods differ in their utilization of the distance matrix and discuss their respective contributions in understanding the complex relationships within the data.\
+
+
+Dendrogram:
+
+A dendrogram is a hierarchical clustering visualization tool that arranges objects or groups based on their similarities or dissimilarities. It employs the distance matrix to construct a tree-like structure, where the height of the branches represents the dissimilarity between the clusters. In the context of river data, the dendrogram provides a comprehensive overview of the relationships between river size and velocity categories. It enables us to identify clusters or groups of similar categories based on their distances on the vertical axis. By examining the dendrogram, we can observe how these groups are formed and gain insights into the hierarchical structure of the data.\
+
+
+MDS Plot:
+
+The MDS plot, on the other hand, is a graphical representation of the dissimilarities between objects or groups in a lower-dimensional space. It also uses the distance matrix to transform the dissimilarity values into spatial coordinates. The goal of the MDS algorithm is to position the objects or groups on the plot in a way that preserves their pairwise distances as accurately as possible. In the case of river data, the MDS plot offers a two-dimensional visualization that captures the relationships between river size and velocity categories. The arrangement of points on the plot reflects the overall dissimilarity between the categories. By examining the MDS plot, we can identify clusters, detect outliers, and explore potential trends or patterns in the data.\
+
+
+Differences and Complementary Roles:
+
+  1. While both the dendrogram and MDS plot use the distance matrix, they differ in their approach to representing the relationships in the data. The dendrogram emphasizes the hierarchical clustering structure and provides a global view of the data. It shows how the categories group together based on their similarities, highlighting distinct clusters or branches. On the other hand, the MDS plot focuses on the spatial arrangement of the categories, providing a visual representation of their dissimilarities. It allows for the examination of individual points and their relative positions, offering a more detailed perspective.
+    
+  2. The inclusion of both a dendrogram and an MDS plot in the analysis of river data serves complementary purposes. The dendrogram helps us understand the hierarchical structure of the data, revealing how river size and velocity categories cluster together. It provides a high-level overview and facilitates the identification of major groups. On the other hand, the MDS plot offers a visual representation that enables us to explore the relationships between individual categories in a spatial context. It allows for the detection of patterns, clusters, and potential outliers that may not be readily apparent in the dendrogram.
+    
+  3. By utilizing both the dendrogram and the MDS plot, we gain a more comprehensive understanding of the multivariate relationships in the river data. The dendrogram helps us identify broad clusters and understand the overall organization of the data, while the MDS plot provides finer details and insights into the dissimilarities between individual categories. Together, these methods enhance our ability to interpret the complex relationships within the river data and make informed decisions based on the findings.
+
+
+## Task 3
+
+### Action 1
+we selected the algae variables (A1, A2, A3, A4, A5) from the river\_data dataset. These variables represent different measurements related to algae. To ensure consistency and compatibility for subsequent analysis, the algae variables were converted to numeric values. Non-numeric values were replaced with NA (missing values) using the apply() function. This step facilitates statistical calculations and reduces potential errors. We computed descriptive statistics for the algae variables grouped by season. The aggregate() function was utilized to summarize the data, considering each season as a separate group. The resulting season\_structure dataframe provides insights into the mean, standard deviation, minimum, maximum, and quartiles (Q1 and Q3) for each algae variable within each season.
+
+```{r}
+# Select the algae variables (A1, A2, A3, A4, A5) from the river_data
+algae_vars <- river_data[, c("A1", "A2", "A3", "A4", "A5")]
+
+# Convert the algae variables to numeric, replacing non-numeric values with NA
+algae_vars <- apply(algae_vars, 2, function(x) {
+  x_numeric <- as.numeric(as.character(x))
+  ifelse(is.na(x_numeric) | is.infinite(x_numeric), NA, x_numeric)
+})
+
+# Compute descriptive statistics by season, excluding missing values
+season_structure <- aggregate(algae_vars, by = list(river_data$Season), FUN = function(x) {
+  c(mean = mean(x, na.rm = TRUE),
+    sd = sd(x, na.rm = TRUE),
+    min = ifelse(sum(!is.na(x)) > 0, min(x, na.rm = TRUE), NA),
+    max = ifelse(sum(!is.na(x)) > 0, max(x, na.rm = TRUE), NA),
+    q1 = ifelse(sum(!is.na(x)) > 0, quantile(x, 0.25, na.rm = TRUE), NA),
+    q3 = ifelse(sum(!is.na(x)) > 0, quantile(x, 0.75, na.rm = TRUE), NA))
+})
+
+# Rename the columns for clarity
+#colnames(season_structure)[2:7] <- c("Mean", "SD", "Min", "Max", "Q1", "Q3")
+
+# Print the structure of cases for the algae variables
+head(season_structure)
+```
+
+
+```{r}
+
+algae_vars <- river_data[, c("A1", "A2", "A3", "A4", "A5")]
+str(algae_vars)
+summary(algae_vars)
+
+```
+
+Euclidean distance: We used Euclidean distance as it is a commonly used metric for continuous numeric variables. Since the algae variables (A1, A2, A3, A4, A5) represent numeric measurements, Euclidean distance is appropriate for calculating dissimilarity between seasons based on these variables. It takes into account the magnitude and absolute differences between the algae measurements.
+
+Complete linkage: We chose complete linkage as the clustering method because it forms compact, well-separated clusters and is suitable when there might be non-linear relationships or concerns about merging clusters with different variances. Complete linkage tends to create distinct clusters and is less sensitive to outliers, making it useful when the number of end branches in the dendrogram becomes large and interpretation becomes challenging. By using complete linkage, we can focus on identifying overall patterns and relationships between seasons rather than analyzing individual branches.
+
+The combination of Euclidean distance and complete linkage allows us to capture the dissimilarity between seasons based on the mean values of the algae variables and identify clusters of seasons that are most similar or different.
+
+```{r}
+library(cluster)
+
+# Subset the algae variables (A1, A2, A3, A4, A5) and the season variable from the original dataset
+algae_season <- river_data[, c("A1", "A2", "A3", "A4", "A5", "Season")]
+
+
+numeric_cols <- sapply(algae_season, is.numeric)
+
+algaemeans <- aggregate(algae_season[, numeric_cols], 
+                       by = list(algae_season$Season), FUN = mean, na.rm = TRUE)
+
+# Calculate the dissimilarity matrix using an appropriate distance metric
+diss_matrix <- daisy(algaemeans[, -1], metric = "euclidean")
+
+# Perform hierarchical clustering using the dissimilarity matrix
+hc <- hclust(diss_matrix, method = "complete")
+
+# Assign the labels from the "Group.1" column
+labels <- algaemeans$Group.1
+
+# Plot the dendrogram with labels
+plot(hc, main = "Dendrogram of Season Relationships Based on Algae Variables",
+     xlab = "Seasons", ylab = "Distance", labels = labels)
+
+```
+
+The dendrogram provides a graphical representation of the similarities and dissimilarities between seasons based on the algae variables. By examining the vertical axis, we observe that the distances between the seasons on the left side differ from those on the right side. Specifically, the left side groups spring and winter together with a distance of 2.5, while on the right side, autumn and summer are grouped with a distance of 3.5. \
+
+Similarity between Spring and Winter:
+
+The close grouping of spring and winter on the left side of the dendrogram suggests a higher similarity between these two seasons based on the algae variables. This hypothesis implies that the environmental conditions and ecological processes during spring and winter might exhibit certain similarities, leading to comparable patterns in algae growth and composition.
+
+  1. Shared Environmental Factors:
+  
+        The similarity between spring and winter can be attributed to shared environmental factors such as temperature, light availability, and nutrient levels. During both seasons, the river might experience lower temperatures and reduced solar radiation, which could impact algal growth dynamics. Additionally, nutrient levels may exhibit similarities, potentially affecting the composition and abundance of algae species in the river. These shared environmental factors could explain the closer grouping of spring and winter in the dendrogram.
+\end{enumerate}
+
+Similarity between Autumn and Summer:
+
+On the right side of the dendrogram, the grouping of autumn and summer with a distance of 3.5 suggests a higher similarity between these two seasons based on the algae variables. This hypothesis proposes that autumn and summer might share certain ecological characteristics or environmental conditions that influence algae dynamics in a similar manner.
+
+  2. Hydrological and Climatic Factors:
+  
+        The similarity between autumn and summer can be linked to hydrological and climatic factors. Both seasons often experience higher temperatures, increased solar radiation, and relatively stable hydrological conditions. These factors can create favorable conditions for algal growth and result in comparable patterns in the composition and abundance of algae species during autumn and summer. Additionally, similar nutrient inputs and mixing dynamics in the river during these seasons could contribute to their closer grouping.
+
+### Action 2
+The aggregate() function is employed to calculate the mean frequencies of the algae variables for each season. The 'by' parameter in the aggregate() function is set to 'list(algae\_season\$Season)', indicating that the calculation should be performed separately for each unique value in the 'Season' column. The 'FUN' parameter is set to 'mean' to compute the mean values for each variable within each season. The resulting 'algae\_mean\_frequencies' dataframe contains the mean frequencies for each algae variable (A1, A2, A3, A4, A5) by season. \
+    
+We used Euclidean distance as it is a commonly used metric for continuous numeric variables. Since the algae variables (A1, A2, A3, A4, A5) represent numeric measurements, Euclidean distance is appropriate for calculating dissimilarity between seasons based on these variables. It takes into account the magnitude and absolute differences between the algae measurements. We chose complete linkage as the clustering method because it forms compact, well-separated clusters and is suitable when there might be non-linear relationships or concerns about merging clusters with different variances. Complete linkage tends to create distinct clusters and is less sensitive to outliers, making it useful when the number of end branches in the dendrogram becomes large and interpretation becomes challenging. By using complete linkage, we can focus on identifying overall patterns and relationships between seasons rather than analyzing individual branches. \
+
+The combination of Euclidean distance and complete linkage allows us to capture the dissimilarity between seasons based on the mean values of the algae variables and identify clusters of seasons that are most similar or different.
+
+```{r}
+
+# Calculate the mean frequencies for each algae variable by each season
+algae_mean_frequencies <- aggregate(algae_season[, -6], by = list(algae_season$Season), FUN = mean)
+
+# Set appropriate column names for the mean frequencies table
+colnames(algae_mean_frequencies) <- c("Season", "Mean_A1", "Mean_A2", "Mean_A3", "Mean_A4", "Mean_A5")
+
+# Print the mean frequencies table
+print(algae_mean_frequencies)
+
+```
+
+The table presents the mean frequencies of five algae variables (A1, A2, A3, A4, and A5) for each season (autumn, spring, summer, and winter). These mean values provide insights into the average abundance of each algae variable during different seasons. By examining the values in this table, we can draw hypotheses and explanations regarding how they contribute to the clustering of seasons observed in the dendrogram. \
+
+Seasonal Differences in Mean Algae Frequencies:
+
+The mean frequencies of algae variables can help us understand the differences between seasons and their association with the observed clustering. By comparing the mean values for each algae variable across seasons, we can identify similarities and dissimilarities that potentially contribute to the grouping of seasons within the dendrogram.
+
+  1. Algae Variable A1:
+  
+        Looking at the mean frequencies of A1, we observe that the values for autumn, spring, summer, and winter are relatively similar, with small variations. This suggests that A1 might not be a strong differentiating factor in explaining the clustering of seasons in the dendrogram. Other algae variables might play a more significant role in distinguishing between seasons.
+
+  2. Algae Variable A2:
+  
+        The mean frequencies of A2 show a similar pattern across seasons, with values ranging from approximately 6 to 9. This similarity in mean frequencies suggests that A2 might not strongly contribute to the clustering of seasons observed in the dendrogram. It is likely that other algae variables have more distinguishing patterns between seasons.
+
+  3. Algae Variable A3:
+  
+        For A3, we observe notable differences in mean frequencies between seasons. Spring exhibits the highest mean frequency, followed by summer, autumn, and winter. This discrepancy suggests that A3 might play a role in differentiating seasons, particularly between spring and winter, which were grouped closely in the dendrogram. The higher mean frequency of A3 in spring compared to winter might contribute to their separation within the dendrogram.
+
+  4. Algae Variable A4:
+  
+        The mean frequencies of A4 show relatively low values across all seasons, indicating a consistent pattern. This suggests that A4 might not strongly contribute to the clustering of seasons within the dendrogram. Other factors and algae variables may be more influential in differentiating between seasons.
+
+  5. Algae Variable A5:
+  
+        A5 exhibits noticeable variations in mean frequencies across seasons. Autumn and summer show higher mean frequencies of A5 compared to spring and winter. This variation in A5 frequencies might contribute to the differentiation between autumn/summer and spring/winter in the dendrogram. The higher mean frequencies of A5 in autumn and summer might contribute to their closer grouping within the dendrogram.
+        
+In this conclusion, we explored the mean frequencies of algae variables for each season and their potential role in explaining the clustering of seasons within the dendrogram. While variables like A1 and A2 did not exhibit distinct patterns between seasons, variables such as A3 and A5 showed variations in mean frequencies that could contribute to the observed clustering. The higher mean frequency of A3 in spring compared to winter might explain their separation within the dendrogram, while the differences in A5 frequencies could contribute to the grouping of autumn and summer.
+
